@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite doesn't support enums natively, using strings instead
+// Enums are validated at application level
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String?
+  apiKey            String    @unique
+  role              String    @default("USER") // USER, ADMIN
+  isActive          Boolean   @default(true)
+  timezone          String    @default("UTC")
+  preferences       String?   // JSON string
+  onboardingCompleted Boolean @default(false)
+  lastLoginAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  // Relations
+  sessions          Session[]
+  activityEvents    ActivityEvent[]
+  blockedDomains    BlockedDomain[]
+  allowedDomains    AllowedDomain[]
+  userSettings      UserSettings?
+  sessionNotes      SessionNote[]
+  insights          Insight[]
+  devices           Device[]
+  
+  @@index([email])
+  @@index([apiKey])
+  @@index([isActive])
+}
+
+model UserSettings {
+  id                        String   @id @default(cuid())
+  userId                    String   @unique
+  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Focus session settings
+  defaultSessionMinutes     Int      @default(50)
+  distractionTimeoutMinutes Int      @default(2)
+  gracePeriodSeconds        Int      @default(30)
+  autoCloseEnabled          Boolean  @default(false)
+  warningEnabled            Boolean  @default(true)
+  
+  // Extension settings
+  ignorePinnedTabs          Boolean  @default(true)
+  trackNewTabs              Boolean  @default(true)
+  syncEnabled               Boolean  @default(true)
+  
+  // Notification settings
+  emailNotifications         Boolean  @default(true)
+  pushNotifications         Boolean  @default(false)
+  weeklyReports             Boolean  @default(true)
+  
+  // UI settings
+  theme                     String   @default("light")
+  language                  String   @default("en")
+  
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+model Session {
+  id                    String        @id @default(cuid())
+  userId                String
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Session metadata
+  title                 String?
+  description           String?
+  expectedDurationMinutes Int?
+  actualDurationSeconds Int?
+  
+  // Timestamps
+  startedAt             DateTime      @default(now())
+  endedAt               DateTime?
+  lastActiveAt          DateTime      @default(now())
+  
+  // State and metrics
+  state                 String        @default("ACTIVE") // ACTIVE, COMPLETED, CANCELLED, PAUSED
+  totalFocusSeconds     Int           @default(0)
+  totalDistractionSeconds Int         @default(0)
+  totalNeutralSeconds   Int           @default(0)
+  interruptionCount     Int           @default(0)
+  longestUninterruptedStreak Int      @default(0)
+  focusScore            Int           @default(0)
+  maxFocusLevel         String?       // HIGH, MEDIUM, LOW
+  
+  // Advanced metrics
+  recoveryTimeSeconds   Int           @default(0)
+  forcedCloseCount      Int           @default(0)
+  warningCount          Int           @default(0)
+  tabSwitchCount        Int           @default(0)
+  uniqueDomainsVisited  Int           @default(0)
+  
+  // Device info
+  deviceInfo            String?       // JSON string
+  
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  
+  // Relations
+  activityEvents        ActivityEvent[]
+  notes                 SessionNote[]
+  
+  @@index([userId])
+  @@index([state])
+  @@index([startedAt])
+  @@index([endedAt])
+  @@index([focusScore])
+}
+
+model ActivityEvent {
+  id                String        @id @default(cuid())
+  sessionId         String
+  session           Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Event data
+  domain            String
+  url               String?
+  title             String?
+  
+  // Timestamps
+  startedAt         DateTime
+  endedAt           DateTime
+  durationSeconds   Int
+  
+  // Classification
+  category          String        // FOCUS, DISTRACTION, NEUTRAL
+  source            String        @default("CHROME_EXTENSION") // CHROME_EXTENSION, WEB_APP, API
+  focusLevel        String?       // HIGH, MEDIUM, LOW
+  
+  // Additional context
+  tabId             Int?
+  windowId          Int?
+  isActive          Boolean       @default(true)
+  
+  createdAt         DateTime      @default(now())
+  
+  @@index([sessionId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([category])
+  @@index([domain])
+  @@index([startedAt])
+}
+
+model BlockedDomain {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domain        String
+  reason        String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, domain])
+  @@index([userId])
+}
+
+model AllowedDomain {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domain        String
+  category      String?  // e.g., "work", "learning", "communication"
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, domain])
+  @@index([userId])
+}
+
+model SessionNote {
+  id        String   @id @default(cuid())
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  type      String   @default("manual") // manual, auto, insight
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([userId])
+}
+
+model Device {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  type          String   // "chrome_extension", "web_app", "mobile"
+  platform      String?  // "windows", "macos", "linux", etc.
+  userAgent     String?
+  lastSyncAt    DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([type])
+}
+
+model Insight {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // "productivity_trend", "distraction_pattern", "optimal_time", etc.
+  title       String
+  description String
+  data        String?  // JSON string with insight-specific data
+  isRead      Boolean  @default(false)
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([type])
+  @@index([isRead])
+}
+
+model AnalyticsCache {
+  id          String   @id @default(cuid())
+  userId      String?
+  type        String   // "daily_stats", "weekly_trends", "monthly_report"
+  key         String   // Cache key (e.g., date range)
+  data        String   // JSON string with cached analytics data
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, type, key])
+  @@index([expiresAt])
+}

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus OS - Deep Work Operating System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="app" class="min-h-screen">
+        <!-- Loading State -->
+        <div class="flex items-center justify-center min-h-screen">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold text-gray-900 mb-4">Focus OS</h1>
+                <p class="text-gray-600 mb-8">Deep Work Operating System</p>
+                <div class="animate-pulse">
+                    <div class="h-8 bg-blue-600 rounded w-48 mx-auto mb-4"></div>
+                    <div class="h-4 bg-gray-300 rounded w-32 mx-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001';
+        const API_KEY = '02313202e4207fed50089c8e7d99be82c85f3f8f2cc42e9b9d9ebe8b9fca6f3c';
+
+        // Simple app state
+        const app = {
+            user: null,
+            activeSession: null,
+            insights: [],
+            stats: {
+                todayFocus: 0,
+                weeklyScore: 85,
+                sessionsCount: 12
+            }
+        };
+
+        // API helpers
+        const api = {
+            async get(url) {
+                try {
+                    const response = await axios.get(`${API_URL}${url}`, {
+                        headers: { 'X-API-Key': API_KEY }
+                    });
+                    return response.data;
+                } catch (error) {
+                    console.error('API Error:', error);
+                    return null;
+                }
+            },
+            async post(url, data) {
+                try {
+                    const response = await axios.post(`${API_URL}${url}`, data, {
+                        headers: { 'X-API-Key': API_KEY }
+                    });
+                    return response.data;
+                } catch (error) {
+                    console.error('API Error:', error);
+                    return null;
+                }
+            }
+        };
+
+        // Load data
+        async function loadData() {
+            const activeSession = await api.get('/api/sessions/active');
+            const insights = await api.get('/api/insights');
+            
+            app.activeSession = activeSession?.session;
+            app.insights = insights?.insights || [];
+            
+            renderApp();
+        }
+
+        // Start session
+        async function startSession() {
+            const result = await api.post('/api/sessions', {
+                title: 'Focus Session',
+                expectedDurationMinutes: 25
+            });
+            
+            if (result?.session) {
+                app.activeSession = result.session;
+                renderApp();
+            }
+        }
+
+        // Stop session
+        async function stopSession() {
+            // Mock stop for now
+            app.activeSession = null;
+            renderApp();
+        }
+
+        // Render app
+        function renderApp() {
+            const appDiv = document.getElementById('app');
+            
+            appDiv.innerHTML = `
+                <div class="min-h-screen bg-gray-50">
+                    <!-- Header -->
+                    <header class="bg-white shadow-sm border-b">
+                        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div class="flex justify-between items-center h-16">
+                                <h1 class="text-2xl font-bold text-gray-900">Focus OS</h1>
+                                <div class="flex items-center space-x-4">
+                                    <span class="text-sm text-gray-600">demo@focusos.local</span>
+                                    <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+                                        D
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <!-- Main Content -->
+                    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        <!-- Stats Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="flex items-center">
+                                    <div class="p-3 bg-blue-100 rounded-lg">
+                                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-600">Today's Focus</p>
+                                        <p class="text-2xl font-semibold text-gray-900">${app.stats.todayFocus}m</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="flex items-center">
+                                    <div class="p-3 bg-green-100 rounded-lg">
+                                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-600">Focus Score</p>
+                                        <p class="text-2xl font-semibold text-gray-900">${app.stats.weeklyScore}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-lg shadow p-6">
+                                <div class="flex items-center">
+                                    <div class="p-3 bg-purple-100 rounded-lg">
+                                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-600">Sessions</p>
+                                        <p class="text-2xl font-semibold text-gray-900">${app.stats.sessionsCount}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Session Timer -->
+                        <div class="bg-white rounded-lg shadow p-6 mb-8">
+                            <div class="text-center">
+                                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                                    ${app.activeSession ? 'Active Session' : 'Start a Focus Session'}
+                                </h2>
+                                
+                                ${app.activeSession ? `
+                                    <div class="mb-6">
+                                        <div class="text-4xl font-mono text-gray-900 mb-2">25:00</div>
+                                        <div class="text-sm text-gray-600">${app.activeSession.title}</div>
+                                        <div class="text-sm text-green-600 font-medium">Focus Score: ${app.activeSession.focusScore}</div>
+                                    </div>
+                                    <button onclick="stopSession()" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg transition">
+                                        Stop Session
+                                    </button>
+                                ` : `
+                                    <div class="mb-6">
+                                        <div class="text-4xl font-mono text-gray-300 mb-2">00:00</div>
+                                        <div class="text-sm text-gray-500">No active session</div>
+                                    </div>
+                                    <button onclick="startSession()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition">
+                                        Start Focus Session
+                                    </button>
+                                `}
+                            </div>
+                        </div>
+
+                        <!-- Insights -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h2 class="text-xl font-semibold text-gray-900 mb-4">Recent Insights</h2>
+                            <div class="space-y-4">
+                                ${app.insights.map(insight => `
+                                    <div class="border-l-4 border-blue-500 pl-4 py-2">
+                                        <h3 class="font-medium text-gray-900">${insight.title}</h3>
+                                        <p class="text-sm text-gray-600">${insight.description}</p>
+                                        <span class="inline-block mt-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                            ${insight.type}
+                                        </span>
+                                    </div>
+                                `).join('') || '<p class="text-gray-500">No insights available yet.</p>'}
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            `;
+        }
+
+        // Initialize app
+        loadData();
+    </script>
+</body>
+</html>

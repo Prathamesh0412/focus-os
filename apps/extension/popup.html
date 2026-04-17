@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Focus OS Tracker</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      width: 300px;
+      padding: 16px;
+      background: #f9fafb;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      font-size: 18px;
+      color: #111827;
+      margin: 0;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .status-dot.active {
+      background: #22c55e;
+    }
+    .status-dot.inactive {
+      background: #9ca3af;
+    }
+    .session-info {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .session-info h2 {
+      font-size: 14px;
+      color: #6b7280;
+      margin: 0 0 8px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .session-info p {
+      font-size: 24px;
+      font-weight: bold;
+      color: #111827;
+      margin: 0;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .stat-card.focus {
+      border-bottom: 3px solid #22c55e;
+    }
+    .stat-card.distraction {
+      border-bottom: 3px solid #ef4444;
+    }
+    .stat-card .value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #111827;
+    }
+    .stat-card .label {
+      font-size: 11px;
+      color: #6b7280;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .links a {
+      display: block;
+      text-align: center;
+      padding: 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .dashboard-link {
+      background: #0ea5e9;
+      color: white;
+    }
+    .dashboard-link:hover {
+      background: #0284c7;
+    }
+    .settings-link {
+      background: #e5e7eb;
+      color: #374151;
+    }
+    .settings-link:hover {
+      background: #d1d5db;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎯 Focus OS</h1>
+    <div class="status">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">Checking...</span>
+    </div>
+  </div>
+
+  <div class="session-info">
+    <h2>Current Session</h2>
+    <p id="timer">--:--:--</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card focus">
+      <div class="value" id="focus-time">0m</div>
+      <div class="label">Focus Time</div>
+    </div>
+    <div class="stat-card distraction">
+      <div class="value" id="distraction-time">0m</div>
+      <div class="label">Distraction Time</div>
+    </div>
+  </div>
+
+  <div class="links">
+    <a href="#" class="dashboard-link" id="dashboard-link">Open Dashboard</a>
+    <a href="#" class="settings-link" id="settings-link">Extension Settings</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

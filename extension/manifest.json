@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Focus OS",
+  "version": "1.0.0",
+  "description": "Deep Work Operating System - Focus enforcement and productivity tracking",
+  "permissions": [
+    "tabs",
+    "storage",
+    "alarms",
+    "notifications",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://localhost:3001/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Focus OS"
+  },
+  "options_page": "options.html",
+    "web_accessible_resources": [
+    {
+      "resources": ["warning.html", "blocked.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

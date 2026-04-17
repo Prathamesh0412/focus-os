@@ -1,0 +1,19 @@
+{
+  "name": "@focus-os/utils",
+  "version": "1.0.0",
+  "description": "Shared utilities for Focus OS",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@focus-os/types": "workspace:*",
+    "date-fns": "^2.30.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}

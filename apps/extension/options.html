@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Focus OS Extension Settings</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f9fafb;
+    }
+    h1 {
+      color: #111827;
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #6b7280;
+      margin-bottom: 24px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+    .help-text {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    button {
+      background: #0ea5e9;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0284c7;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .status.success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+    .status.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+    .test-connection {
+      margin-top: 12px;
+    }
+    .test-connection button {
+      background: #6b7280;
+    }
+    .test-connection button:hover {
+      background: #4b5563;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 Focus OS Settings</h1>
+  <p class="subtitle">Configure your extension connection</p>
+
+  <form id="settings-form">
+    <div class="form-group">
+      <label for="apiBaseUrl">API Base URL</label>
+      <input
+        type="text"
+        id="apiBaseUrl"
+        placeholder="http://localhost:3000"
+      />
+      <p class="help-text">
+        The URL of your Focus OS backend. Use <code>http://localhost:3000</code> for local development.
+      </p>
+    </div>
+
+    <div class="form-group">
+      <label for="apiKey">API Key</label>
+      <input
+        type="password"
+        id="apiKey"
+        placeholder="Your API key"
+      />
+      <p class="help-text">
+        Find your API key in the Focus OS dashboard settings or your <code>.env</code> file.
+      </p>
+    </div>
+
+    <button type="submit" id="save-btn">Save Settings</button>
+
+    <div class="test-connection">
+      <button type="button" id="test-btn">Test Connection</button>
+    </div>
+
+    <div id="status" class="status" style="display: none;"></div>
+  </form>
+
+  <script src="options.js"></script>
+</body>
+</html>
