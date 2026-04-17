@@ -33,7 +33,7 @@ chrome.runtime.onInstalled.addListener(() => {
 // Check existing tabs on extension startup
 chrome.runtime.onStartup.addListener(async () => {
   console.log('Focus OS Extension Started');
-  await checkAllTabs();
+  await promptFocusSession();
 });
 
 // Also check when extension is reloaded
@@ -41,11 +41,35 @@ chrome.runtime.onSuspend.addListener(() => {
   console.log('Focus OS Extension Suspended');
 });
 
-// Check all existing tabs
-async function checkAllTabs() {
+// Prompt user to start focus session
+async function promptFocusSession() {
   try {
     const tabs = await chrome.tabs.query({});
-    const settings = await chrome.storage.sync.get(['blockedDomains']);
+    const validTabs = tabs.filter(tab => tab.url && !tab.pinned);
+    
+    if (validTabs.length > 0) {
+      // Show notification asking user to start focus session
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+        title: 'Focus OS Ready',
+        message: 'Click extension icon to start focus session and select tabs to keep open.',
+        requireInteraction: true
+      });
+    }
+  } catch (error) {
+    console.error('Error prompting focus session:', error);
+  }
+}
+
+// Check all existing tabs (only when focus mode is active)
+async function checkAllTabs() {
+  try {
+    const settings = await chrome.storage.sync.get(['focusMode', 'blockedDomains']);
+    
+    if (!settings.focusMode) return;
+    
+    const tabs = await chrome.tabs.query({});
     
     if (settings.blockedDomains) {
       for (const tab of tabs) {
@@ -89,12 +113,12 @@ async function handleTabChange(tab) {
     currentActiveTab = tab;
     currentDomain = domain;
     
-    // Get settings and always check domain restrictions
+    // Check if focus mode is active
     const settings = await chrome.storage.sync.get(['focusMode', 'blockedDomains']);
     isFocusMode = settings.focusMode || false;
     
-    // Always enforce blocking, regardless of focus mode
-    if (settings.blockedDomains) {
+    // Only enforce blocking when focus mode is active
+    if (isFocusMode && settings.blockedDomains) {
       await checkDomainRestriction(domain, settings.blockedDomains);
     }
     
@@ -130,9 +154,13 @@ async function checkDomainRestriction(domain, blockedDomains) {
 async function showWarningNotification(domain) {
   chrome.notifications.create({
     type: 'basic',
+    iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
     title: 'Focus OS Warning',
     message: `${domain} is distracting. Return to focus or tab will be closed.`
   });
+  
+  // Send warning event to API
+  await sendActivityEvent(domain, 'distraction_warning');
 }
 
 // Close distracting tab
@@ -149,9 +177,13 @@ async function closeDistractingTab(domain) {
     
     chrome.notifications.create({
       type: 'basic',
+      iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
       title: 'Focus OS',
       message: `Distracting tab ${domain} was closed.`
     });
+    
+    // Send blocked event to API
+    await sendActivityEvent(domain, 'distraction_blocked');
     
   } catch (error) {
     console.error('Error closing tab:', error);
@@ -159,27 +191,20 @@ async function closeDistractingTab(domain) {
 }
 
 // Send activity event to API
-async function sendActivityEvent(domain) {
+async function sendActivityEvent(domain, eventType = 'focus') {
   if (!activeSessionId) {
     await checkActiveSession();
   }
   
   if (!activeSessionId) {
-    return; // No active session
+    return;
   }
   
   const event = {
+    sessionId: activeSessionId,
     domain: domain,
-    url: currentActiveTab?.url,
-    title: currentActiveTab?.title,
-    startedAt: new Date().toISOString(),
-    endedAt: new Date().toISOString(),
-    durationSeconds: 15, // Default 15 seconds
-    category: classifyDomain(domain),
-    source: 'CHROME_EXTENSION',
-    tabId: currentActiveTab?.id,
-    windowId: currentActiveTab?.windowId,
-    isActive: true
+    type: eventType,
+    timestamp: new Date().toISOString()
   };
   
   // Queue event for batch sending

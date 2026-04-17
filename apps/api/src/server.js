@@ -28,6 +28,36 @@ const mockData = {
       description: 'Your focus score has improved by 8 points this week.',
       isRead: false
     }
+  ],
+  activityEvents: [
+    {
+      id: 'event-1',
+      sessionId: 'session-1',
+      domain: 'github.com',
+      type: 'focus',
+      timestamp: new Date(Date.now() - 300000).toISOString() // 5 minutes ago
+    },
+    {
+      id: 'event-2',
+      sessionId: 'session-1',
+      domain: 'facebook.com',
+      type: 'distraction_blocked',
+      timestamp: new Date(Date.now() - 120000).toISOString() // 2 minutes ago
+    },
+    {
+      id: 'event-3',
+      sessionId: 'session-1',
+      domain: 'youtube.com',
+      type: 'distraction_blocked',
+      timestamp: new Date(Date.now() - 60000).toISOString() // 1 minute ago
+    },
+    {
+      id: 'event-4',
+      sessionId: 'session-1',
+      domain: 'stackoverflow.com',
+      type: 'focus',
+      timestamp: new Date(Date.now() - 30000).toISOString() // 30 seconds ago
+    }
   ]
 };
 
@@ -84,6 +114,49 @@ const server = http.createServer((req, res) => {
         insights: mockData.insights,
         unreadCount: mockData.insights.filter(i => !i.isRead).length
       }));
+      return;
+    }
+
+    if (path === '/api/activity-events') {
+      const apiKey = req.headers['x-api-key'];
+      if (apiKey !== mockData.user.apiKey) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid API key' }));
+        return;
+      }
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ events: mockData.activityEvents }));
+      return;
+    }
+
+    if (path === '/api/activity-events' && method === 'POST') {
+      const apiKey = req.headers['x-api-key'];
+      if (apiKey !== mockData.user.apiKey) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid API key' }));
+        return;
+      }
+      
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const events = JSON.parse(body);
+          if (Array.isArray(events)) {
+            events.forEach(event => {
+              event.id = 'event-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+              event.timestamp = event.timestamp || new Date().toISOString();
+              mockData.activityEvents.push(event);
+            });
+          }
+          res.writeHead(201, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, count: events.length }));
+        } catch (error) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        }
+      });
       return;
     }
 

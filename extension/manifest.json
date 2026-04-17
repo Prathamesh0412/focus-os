@@ -24,7 +24,7 @@
   "options_page": "options.html",
     "web_accessible_resources": [
     {
-      "resources": ["warning.html", "blocked.html"],
+      "resources": ["warning.html", "blocked.html", "tabselector.html", "tabselector.js"],
       "matches": ["<all_urls>"]
     }
   ]

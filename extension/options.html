@@ -72,12 +72,121 @@
       background: #2563eb;
     }
     .button-secondary {
-      background: #f3f4f6;
-      color: #1f2937;
+      background: #6b7280;
+      color: white;
     }
     .button-secondary:hover {
-      background: #e5e7eb;
+      background: #4b5563;
     }
+    
+    /* Activity Monitoring Styles */
+    .activity-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    
+    .activity-card {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    
+    .activity-card h3 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #1f2937;
+    }
+    
+    .activity-list {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+    }
+    
+    .activity-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .activity-item:last-child {
+      border-bottom: none;
+    }
+    
+    .activity-domain {
+      font-weight: 500;
+      color: #1f2937;
+    }
+    
+    .activity-time {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    .activity-count {
+      font-size: 14px;
+      color: #6b7280;
+      text-align: center;
+    }
+    
+    .activity-count span {
+      font-weight: 600;
+      color: #1f2937;
+    }
+    
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f3f4f6;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .status-label {
+      color: #6b7280;
+    }
+    
+    .status-value {
+      font-weight: 600;
+      color: #1f2937;
+    }
+    
+    .status-value.active {
+      color: #059669;
+    }
+    
+    .status-value.inactive {
+      color: #dc2626;
+    }
+    
+    .loading {
+      text-align: center;
+      color: #6b7280;
+      font-style: italic;
+    }
+    
+    .blocked-item {
+      color: #dc2626;
+    }
+    
+    .focus-item {
+      color: #059669;
+    }
+    
     .status {
       padding: 12px;
       border-radius: 6px;
@@ -135,6 +244,47 @@
       <label for="autoCloseDelay">Auto-Close Delay (ms)</label>
       <input type="number" id="autoCloseDelay" value="10000">
       <small>Time before automatically closing distracting tabs</small>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2 class="section-title">Real-time Activity</h2>
+    
+    <div class="activity-grid">
+      <div class="activity-card">
+        <h3>Current Active Tabs</h3>
+        <div id="activeTabsList" class="activity-list">
+          <div class="loading">Loading...</div>
+        </div>
+        <div class="activity-count">
+          Active: <span id="activeTabsCount">0</span> tabs
+        </div>
+      </div>
+      
+      <div class="activity-card">
+        <h3>Recently Blocked</h3>
+        <div id="blockedActivityList" class="activity-list">
+          <div class="loading">Loading...</div>
+        </div>
+        <div class="activity-count">
+          Blocked: <span id="blockedTabsCount">0</span> today
+        </div>
+      </div>
+    </div>
+    
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-label">Extension Status:</span>
+        <span id="extensionStatus" class="status-value">Checking...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Focus Mode:</span>
+        <span id="focusModeStatus" class="status-value">Off</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Last Update:</span>
+        <span id="lastUpdate" class="status-value">Never</span>
+      </div>
     </div>
   </div>
 

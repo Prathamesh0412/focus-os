@@ -14,10 +14,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Event listeners
   startFocusBtn.addEventListener('click', async () => {
-    const response = await chrome.runtime.sendMessage({ action: 'startFocusMode' });
-    if (response.success) {
-      await updateStatus();
-    }
+    // Open tab selector window
+    chrome.windows.create({
+      url: chrome.runtime.getURL('tabselector.html'),
+      type: 'popup',
+      width: 400,
+      height: 500,
+      focused: true
+    });
+    
+    // Close popup
+    window.close();
   });
 
   stopFocusBtn.addEventListener('click', async () => {

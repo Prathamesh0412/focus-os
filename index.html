@@ -163,6 +163,47 @@
                             </div>
                         </div>
 
+                        <!-- Extension Status -->
+                        <div class="bg-white rounded-lg shadow p-6 mb-8">
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="text-xl font-semibold text-gray-900">Extension Status</h2>
+                                <div class="flex items-center space-x-2">
+                                    <div id="extensionStatus" class="w-3 h-3 bg-gray-400 rounded-full"></div>
+                                    <span id="extensionStatusText" class="text-sm text-gray-600">Checking...</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                                    <div class="text-2xl font-bold text-gray-900" id="activeTabsCount">0</div>
+                                    <div class="text-sm text-gray-600">Active Tabs</div>
+                                </div>
+                                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                                    <div class="text-2xl font-bold text-gray-900" id="blockedTabsCount">0</div>
+                                    <div class="text-sm text-gray-600">Blocked Today</div>
+                                </div>
+                                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                                    <div class="text-2xl font-bold text-gray-900" id="focusModeStatus">Off</div>
+                                    <div class="text-sm text-gray-600">Focus Mode</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Active Tabs -->
+                        <div class="bg-white rounded-lg shadow p-6 mb-8">
+                            <h2 class="text-xl font-semibold text-gray-900 mb-4">Current Active Tabs</h2>
+                            <div id="activeTabsList" class="space-y-2">
+                                <div class="text-gray-500 text-center py-4">No tabs data available</div>
+                            </div>
+                        </div>
+
+                        <!-- Blocked Activity -->
+                        <div class="bg-white rounded-lg shadow p-6 mb-8">
+                            <h2 class="text-xl font-semibold text-gray-900 mb-4">Recent Blocked Activity</h2>
+                            <div id="blockedActivityList" class="space-y-2">
+                                <div class="text-gray-500 text-center py-4">No blocked activity yet</div>
+                            </div>
+                        </div>
+
                         <!-- Session Timer -->
                         <div class="bg-white rounded-lg shadow p-6 mb-8">
                             <div class="text-center">
@@ -211,8 +252,160 @@
             `;
         }
 
+        // Extension monitoring functions
+        async function checkExtensionStatus() {
+            try {
+                // Check API connectivity instead of direct extension access
+                const statusEl = document.getElementById('extensionStatus');
+                const statusTextEl = document.getElementById('extensionStatusText');
+                
+                // Try to fetch activity events to check if extension is sending data
+                const events = await api.get('/api/activity-events');
+                
+                if (events && events.length > 0) {
+                    statusEl.className = 'w-3 h-3 bg-green-500 rounded-full';
+                    statusTextEl.textContent = 'Extension Active';
+                    
+                    await loadExtensionData();
+                } else {
+                    statusEl.className = 'w-3 h-3 bg-yellow-500 rounded-full';
+                    statusTextEl.textContent = 'Extension Idle';
+                    
+                    await loadExtensionData();
+                }
+            } catch (error) {
+                console.error('Extension status check failed:', error);
+                document.getElementById('extensionStatus').className = 'w-3 h-3 bg-red-500 rounded-full';
+                document.getElementById('extensionStatusText').textContent = 'API Error';
+            }
+        }
+
+        async function loadExtensionData() {
+            try {
+                console.log('Loading extension data...');
+                
+                // Load activity events from API
+                const eventsResponse = await api.get('/api/activity-events');
+                const activeSession = await api.get('/api/sessions/active');
+                
+                console.log('Events response:', eventsResponse);
+                console.log('Active session response:', activeSession);
+                
+                // Extract events array from response
+                const events = eventsResponse.events || [];
+                
+                // Update active tabs
+                await updateActiveTabs(events);
+                
+                // Update blocked activity
+                updateBlockedActivity(events);
+                
+                // Update focus mode status
+                updateFocusModeStatus(activeSession);
+                
+                console.log('Extension data loaded successfully');
+                
+            } catch (error) {
+                console.error('Error loading extension data:', error);
+            }
+        }
+
+        async function updateActiveTabs(events) {
+            try {
+                // Get recent activity events to show current domains
+                const recentEvents = events.slice(-20); // Last 20 events
+                
+                // Extract unique domains from recent events
+                const domains = [...new Set(recentEvents.map(event => event.domain).filter(Boolean))];
+                
+                const tabsListEl = document.getElementById('activeTabsList');
+                document.getElementById('activeTabsCount').textContent = domains.length;
+                
+                if (domains.length > 0) {
+                    tabsListEl.innerHTML = domains.map(domain => `
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">${domain}</div>
+                                    <div class="text-sm text-gray-500">Recently visited</div>
+                                </div>
+                            </div>
+                            <div class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+                                Active
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    tabsListEl.innerHTML = '<div class="text-gray-500 text-center py-4">No recent activity</div>';
+                }
+            } catch (error) {
+                console.error('Error updating active tabs:', error);
+                // Show fallback message
+                document.getElementById('activeTabsList').innerHTML = '<div class="text-gray-500 text-center py-4">Extension data not available</div>';
+                document.getElementById('activeTabsCount').textContent = '0';
+            }
+        }
+
+        function updateBlockedActivity(events) {
+            const blockedEvents = events.filter(event => 
+                event.type === 'distraction_blocked' || event.type === 'tab_closed'
+            ).slice(-10); // Show last 10
+            
+            const blockedListEl = document.getElementById('blockedActivityList');
+            document.getElementById('blockedTabsCount').textContent = blockedEvents.length;
+            
+            if (blockedEvents.length > 0) {
+                blockedListEl.innerHTML = blockedEvents.map(event => `
+                    <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-red-100 rounded flex items-center justify-center">
+                                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900">${event.domain}</div>
+                                <div class="text-sm text-gray-500">${new Date(event.timestamp).toLocaleTimeString()}</div>
+                            </div>
+                        </div>
+                        <div class="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">
+                            ${event.type === 'distraction_blocked' ? 'Blocked' : 'Closed'}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                blockedListEl.innerHTML = '<div class="text-gray-500 text-center py-4">No blocked activity yet</div>';
+            }
+        }
+
+        function updateFocusModeStatus(activeSessionResponse) {
+            const focusStatusEl = document.getElementById('focusModeStatus');
+            
+            // Extract session from response
+            const session = activeSessionResponse.session || activeSessionResponse;
+            
+            if (session && session.state === 'ACTIVE') {
+                focusStatusEl.textContent = 'On';
+                focusStatusEl.className = 'text-2xl font-bold text-green-600';
+            } else {
+                focusStatusEl.textContent = 'Off';
+                focusStatusEl.className = 'text-2xl font-bold text-gray-900';
+            }
+        }
+
+        // Auto-refresh extension data
+        setInterval(async () => {
+            await checkExtensionStatus();
+        }, 5000); // Every 5 seconds
+
         // Initialize app
         loadData();
+        checkExtensionStatus();
     </script>
 </body>
 </html>

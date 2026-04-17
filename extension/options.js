@@ -5,7 +5,10 @@ const DEFAULT_BLOCKED_DOMAINS = [
 ];
 
 // Load settings on page load
-document.addEventListener('DOMContentLoaded', loadSettings);
+document.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
+  startActivityMonitoring();
+});
 
 async function loadSettings() {
   try {
@@ -132,3 +135,142 @@ async function resetSettings() {
     }
   }
 }
+
+// Real-time Activity Monitoring
+let monitoringInterval;
+
+async function startActivityMonitoring() {
+  await updateActivityDisplay();
+  monitoringInterval = setInterval(updateActivityDisplay, 5000); // Update every 5 seconds
+}
+
+async function updateActivityDisplay() {
+  try {
+    // Get current tabs
+    const tabs = await chrome.tabs.query({});
+    const activeTabs = tabs.filter(tab => tab.url && !tab.pinned);
+    
+    // Get API settings
+    const settings = await chrome.storage.sync.get(['apiUrl', 'apiKey']);
+    const apiUrl = settings.apiUrl || 'http://localhost:3001';
+    const apiKey = settings.apiKey || '02313202e4207fed50089c8e7d99be82c85f3f8f2cc42e9b9d9ebe8b9fca6f3c';
+    
+    // Fetch activity events from API
+    const response = await fetch(`${apiUrl}/api/activity-events`, {
+      headers: { 'X-API-Key': apiKey }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      const events = data.events || [];
+      
+      // Update active tabs
+      updateActiveTabsDisplay(activeTabs);
+      
+      // Update blocked activity
+      updateBlockedActivityDisplay(events);
+      
+      // Update status
+      updateExtensionStatus(true);
+    } else {
+      throw new Error('API request failed');
+    }
+    
+    // Update focus mode status
+    const focusSettings = await chrome.storage.sync.get(['focusMode']);
+    updateFocusModeStatus(focusSettings.focusMode || false);
+    
+    // Update last update time
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+    
+  } catch (error) {
+    console.error('Error updating activity display:', error);
+    updateExtensionStatus(false);
+    document.getElementById('activeTabsList').innerHTML = '<div class="loading">Unable to connect</div>';
+    document.getElementById('blockedActivityList').innerHTML = '<div class="loading">Unable to connect</div>';
+  }
+}
+
+function updateActiveTabsDisplay(tabs) {
+  const activeTabsList = document.getElementById('activeTabsList');
+  const activeTabsCount = document.getElementById('activeTabsCount');
+  
+  activeTabsCount.textContent = tabs.length;
+  
+  if (tabs.length > 0) {
+    activeTabsList.innerHTML = tabs.map(tab => {
+      const domain = extractDomainFromUrl(tab.url);
+      return `
+        <div class="activity-item">
+          <span class="activity-domain">${domain}</span>
+          <span class="activity-time">${tab.active ? 'Active' : 'Background'}</span>
+        </div>
+      `;
+    }).join('');
+  } else {
+    activeTabsList.innerHTML = '<div class="loading">No active tabs</div>';
+  }
+}
+
+function updateBlockedActivityDisplay(events) {
+  const blockedActivityList = document.getElementById('blockedActivityList');
+  const blockedTabsCount = document.getElementById('blockedTabsCount');
+  
+  const blockedEvents = events
+    .filter(event => event.type === 'distraction_blocked' || event.type === 'tab_closed')
+    .slice(-10); // Show last 10
+  
+  blockedTabsCount.textContent = blockedEvents.length;
+  
+  if (blockedEvents.length > 0) {
+    blockedActivityList.innerHTML = blockedEvents.map(event => {
+      const time = new Date(event.timestamp).toLocaleTimeString();
+      const type = event.type === 'distraction_blocked' ? 'Blocked' : 'Closed';
+      return `
+        <div class="activity-item">
+          <span class="activity-domain blocked-item">${event.domain}</span>
+          <span class="activity-time">${time} - ${type}</span>
+        </div>
+      `;
+    }).join('');
+  } else {
+    blockedActivityList.innerHTML = '<div class="loading">No blocked activity</div>';
+  }
+}
+
+function updateExtensionStatus(isConnected) {
+  const statusEl = document.getElementById('extensionStatus');
+  if (isConnected) {
+    statusEl.textContent = 'Connected';
+    statusEl.className = 'status-value active';
+  } else {
+    statusEl.textContent = 'Disconnected';
+    statusEl.className = 'status-value inactive';
+  }
+}
+
+function updateFocusModeStatus(isActive) {
+  const statusEl = document.getElementById('focusModeStatus');
+  if (isActive) {
+    statusEl.textContent = 'On';
+    statusEl.className = 'status-value active';
+  } else {
+    statusEl.textContent = 'Off';
+    statusEl.className = 'status-value';
+  }
+}
+
+function extractDomainFromUrl(url) {
+  try {
+    return new URL(url).hostname;
+  } catch (error) {
+    return 'Unknown';
+  }
+}
+
+// Stop monitoring when page is unloaded
+window.addEventListener('beforeunload', () => {
+  if (monitoringInterval) {
+    clearInterval(monitoringInterval);
+  }
+});
